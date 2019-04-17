@@ -27,37 +27,35 @@ char *WWW;
 // The fork function
 void response_handler(int);
 
-/*
- * error - wrapper for perror
- */
+// Error, a wrapper for perror
 void error(char *msg)
 {
   perror(msg);
   exit(1);
 }
 
-// function to combine to strings into one
+// Function to combine to strings into one
 char* concat(const char *s1, const char *s2)
 {
-    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
-    // in real code you would check for errors in malloc here
-    strcpy(result, s1);
-    strcat(result, s2);
+    char *result = malloc( strlen(s1) + strlen(s2) + 1 ); // +1 for the null-terminator
+    if ( result == NULL ) error ("concat function malloc()");
+    strcpy(result, s1 );
+    strcat(result, s2 );
     return result;
 }
 
-// function to get size of the file from https://www.includehelp.com/c-programs/find-size-of-file.aspx*/
+// Function to get size of the file from https://www.includehelp.com/c-programs/find-size-of-file.aspx*/
 long int findSize(const char *file_name)
 {
-    struct stat st; /*declare stat variable*/
-    /*get the size using stat()*/
-    if(stat(file_name,&st)==0)
+    struct stat st;
+    // Get size with stat()
+    if ( stat(file_name,&st)==0 )
         return (st.st_size);
     else
         return -1;
 }
 
-// function to get file extension from https://stackoverflow.com/questions/5309471/getting-file-extension-in-c
+// Function to get file extension from https://stackoverflow.com/questions/5309471/getting-file-extension-in-c
 const char *get_filename_ext(const char *filename)
 {
     const char *dot = strrchr(filename, '.');
@@ -68,22 +66,19 @@ const char *get_filename_ext(const char *filename)
 
 int main(int argc , char **argv)
 {
-  int portno; /* port to listen on */
-  int socket_desc;
-  int spot = 0; // client number we are servicing
-  int client_sock, c, *new_sock;
   struct sockaddr_in clientaddr;
   socklen_t addrlen;
   struct addrinfo hints, *res, *p;
+  int spot = 0; // The specific client we are servicing out of MAXCLIENTS
 
-  //Make sure the port number is there
+  // Check if port number in args
   if (argc != 2)
   {
     fprintf(stderr, "usage: %s <port>\n", argv[0]);
     exit(1);
   }
 
-  // Set all client connections to -1 for unused
+  // Mark each clientConnection spot as -1 for unused
 	for (int i=0; i<MAXCLIENTS; i++)
 		clientConnection[i] = -1;
 
@@ -92,57 +87,46 @@ int main(int argc , char **argv)
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
-  if (getaddrinfo( NULL, argv[1], &hints, &res) != 0)
-  {
-	  perror ("getaddrinfo() error");
-	  exit(1);
- 	}
-  // socket() and bind()
+  if ( getaddrinfo(NULL, argv[1], &hints, &res) != 0 ) error("getaddrinfo() error");
+
+  // Set socket() and bind()
   for (p = res; p != NULL; p = p -> ai_next)
   {
-    listenfd = socket (p->ai_family, p -> ai_socktype, 0);
-    if (listenfd == -1) continue;
-    if (bind(listenfd, p -> ai_addr, p -> ai_addrlen) == 0) break;
+    listenfd = socket(p->ai_family, p -> ai_socktype, 0);
+    if ( listenfd == -1 ) continue;
+    if ( bind(listenfd, p -> ai_addr, p -> ai_addrlen) == 0 ) break;
   }
-  if (p == NULL)
-  {
-    perror ("socket() and bind()");
-    exit(1);
-  }
+  if (p == NULL) error ("socket() and bind()");
 
-  //Set connection directory
+  // Set directory of website we are hosting
   WWW = concat(getenv("PWD"),"/www");
   freeaddrinfo(res);
 
-  // listen for incoming connections
-  if ( listen (listenfd, 1000000) != 0 )
-  {
-	  perror("listen() error");
-    exit(1);
-  }
+  // Begin listening for incoming connections
+  if ( listen(listenfd, 1000000) != 0 ) error("listen() error");
 
-  //Accept the incoming connections
+  // Handler for accepting incoming connections
   while (1)
   {
     addrlen = sizeof(clientaddr);
     clientConnection[spot] = accept (listenfd, (struct sockaddr *) &clientaddr, &addrlen);
-    if (clientConnection[spot] < 0)
-      perror("accept() error");
+
+    if (clientConnection[spot] < 0) error("accept() error");
+
     else
     {
-      //Handle multiple clients with new procces via fork()
-      if ( fork() == 0 )
+      // Handle multiple clients with new procces via fork()
+      if ( fork() == 0 ) // NOTE I will switch this to pthreads
       {
         response_handler(spot);
         exit(0);
       }
     }
-
     while (clientConnection[spot] !=-1 ) spot = (spot + 1) % MAXCLIENTS;
   }
-
   return 0;
 }
+
 void response_handler(int n)
 {
 	char message[100000]; // Incoming message
@@ -156,15 +140,15 @@ void response_handler(int n)
   int BUFSIZE_read;
   long int size; //File size
 
-  //Clear message
+  // Clear memory and recieve client message
   bzero(message,100000);
-  //Recieve the client
 	rcvd = recv(clientConnection[n], message, 100000, 0);
-	if (rcvd < 0)         // error
+	if (rcvd < 0)
 		perror("recv failed");
-	else if (rcvd == 0)   // receive socket closed
+	else if (rcvd == 0)
 		perror("Client upexpectedly disconnected");
-	else                  // message received
+  // Message received
+	else
 	{
 		printf("%s", message);
 		requestline[0] = strtok(message, " \t\n");
@@ -181,18 +165,21 @@ void response_handler(int n)
 			{
 				if (strncmp(requestline[1], "/\0", 2) == 0)
 				{
-          requestline[1] = "/index.html"; //Default choice
+          requestline[1] = "/index.html"; // Default to index.html as is standard
         }
 				snprintf(path, sizeof(path), "%s", WWW);
 				strcpy(&path[strlen(WWW)], requestline[1]);
 				printf("file: %s\n", path);
         fd = open(path, O_RDONLY);
-				if (fd != -1)    //FILE FOUND
+        // File found at correct path
+				if (fd != -1)
 				{
+          // Send correct file infomation header
           size = findSize(path);
           snprintf(strSize, sizeof(strSize), "%ld", size);
-          content = concat(concat(concat("HTTP/1.1 200 Document Follows\r\n Content-Type: " ,get_filename_ext(path)),concat("\r\n Content-Length: ", strSize)),"\r\n\r\n");
+          content = concat(concat(concat("HTTP/1.1 200 Document Follows\r\n Content-Type: ", get_filename_ext(path)), concat("\r\n Content-Length: ", strSize)), "\r\n\r\n");
           send(clientConnection[n], content, strlen(content), 0);
+          // Send file
           BUFSIZE_read=read(fd, buffer, BUFSIZE);
           while (BUFSIZE_read > 0)
 					{
@@ -200,10 +187,10 @@ void response_handler(int n)
             BUFSIZE_read=read(fd, buffer, BUFSIZE);
           }
         }
+        // File not found
 				else
         {
-          // really this isnt actually our fault
-          write(clientConnection[n], "HTTP/1.1 500 Internal Server Error\n", 35);
+          write(clientConnection[n], "HTTP/1.1 404 File Not Found\n", 28);
         }
       }
 		}
