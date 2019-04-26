@@ -1,0 +1,6 @@
+At a glance:
+Implement a logger.
+Replace deprecated function calls with new standards.
+Switch to multi-threading over forking.
+Further modularize code.
+Experiment with OO approach.
