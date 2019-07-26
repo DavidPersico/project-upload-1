@@ -11,7 +11,7 @@ make
 ```
 
 Where <IP> is the IP address we are listening at and <PORT> is number like: 9999
-Using NULL for the IP address binds to localhost.
+Using localhost for the IP address binds to localhost.
 
 
 

@@ -31,7 +31,6 @@ void *response_handler(void* ptr)
     /* Unpack and free args */
     client_args* args = (client_args*)(ptr);
     int slot = args->client;
-    char *server_root = globals.server_root;
     free(args);
 
     /* Clear memory and recieve client request */
@@ -58,8 +57,8 @@ void *response_handler(void* ptr)
             {
                 if (strncmp(request_line[1], "/\0", 2) == 0)
                     request_line[1] = "/index.html"; /* Default to index.html */
-                snprintf(send_file_path, sizeof(send_file_path), "%s", server_root);
-                strcpy(&send_file_path[strlen(server_root)], request_line[1]);
+                snprintf(send_file_path, sizeof(send_file_path), "%s", globals.server_root);
+                strcpy(&send_file_path[strlen(globals.server_root)], request_line[1]);
                 printf("File to send: %s\n\n", send_file_path);
                 int fd = open(send_file_path, O_RDONLY);
                 if (fd == -1) /* File not found */

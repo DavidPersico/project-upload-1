@@ -54,7 +54,7 @@ int main(int argc , char **argv)
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;       /* AF_INET specifies IPv4 protocol */
     hints.ai_socktype = SOCK_STREAM; /* SOCK_STREAM specifies TCP */
-    hints.ai_flags = AI_PASSIVE;     /* AI_PASSIVE specifies wildcard IP address when given NULL */
+    hints.ai_flags = AI_PASSIVE;     /* AI_PASSIVE specifies wildcard IP addresss */
     if (getaddrinfo(argv[1], argv[2], &hints, &res) != 0)
         error("getaddrinfo() error");
 

@@ -25,5 +25,6 @@ void interrupt_handler(int sig)
             close(globals.clientConnection[i]);
         }
     }
+    free(globals.server_root);
     exit(0);
 }
