@@ -4,6 +4,8 @@ A simple HTTP GET web server with a test website.
 The web server treats "current_directory/www" as root.
 
 # Usage
+Unpack www.zip into the same directory.
+
 
 ```bash
 make
