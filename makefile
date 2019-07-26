@@ -1,5 +1,5 @@
 CC = gcc $(CFLAGS)
-OBJ = error.o response_handler.o interrupt_handler.o concat.o file_info.o
+OBJ = error.o response_handler.o interrupt_handler.o concat.o file_info.o globals.o
 LIB = -lpthread
 CFLAGS = -g
 

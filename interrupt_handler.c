@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-#include "response_handler.h"
+#include "globals.h"
 #include "interrupt_handler.h"
 
 /* Close all open connections */
@@ -19,10 +19,10 @@ void interrupt_handler(int sig)
     printf("Interrupt!\nClosing open connections..\nReceived signal %d\n", sig);
     for (int i=0; i<MAXCLIENTS; i++)
     {
-        if (clientConnection[i] > -1)
+        if (globals.clientConnection[i] > -1)
         {
-            shutdown(clientConnection[i],  SHUT_RDWR);
-            close(clientConnection[i]);
+            shutdown(globals.clientConnection[i],  SHUT_RDWR);
+            close(globals.clientConnection[i]);
         }
     }
     exit(0);

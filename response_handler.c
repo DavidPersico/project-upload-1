@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 
 #include "concat.h"
+#include "globals.h"
 #include "file_info.h"
 #include "response_handler.h"
 
@@ -30,12 +31,12 @@ void *response_handler(void* ptr)
     /* Unpack and free args */
     client_args* args = (client_args*)(ptr);
     int slot = args->client;
-    char *server_root = args->root;
+    char *server_root = globals.server_root;
     free(args);
 
     /* Clear memory and recieve client request */
     memset((void*)request, (int)'\0', 99999);
-    int rcvd = recv(clientConnection[slot], request, 99999, 0);
+    int rcvd = recv(globals.clientConnection[slot], request, 99999, 0);
     if (rcvd < 0)
         /* Use perror in threads as exit() in error() kills all threads */
         perror("recv failed");
@@ -52,7 +53,7 @@ void *response_handler(void* ptr)
             request_line[2] = strtok(NULL, " \t\n");
             /* Check Request */
             if (strncmp(request_line[2], "HTTP/1.0", 8) != 0 && strncmp(request_line[2], "HTTP/1.1", 8) != 0)
-                write(clientConnection[slot], "HTTP/1.1 500 Internal  Error\n", 35);
+                write(globals.clientConnection[slot], "HTTP/1.1 500 Internal  Error\n", 35);
             else
             {
                 if (strncmp(request_line[1], "/\0", 2) == 0)
@@ -62,8 +63,7 @@ void *response_handler(void* ptr)
                 printf("File to send: %s\n\n", send_file_path);
                 int fd = open(send_file_path, O_RDONLY);
                 if (fd == -1) /* File not found */
-                    write(clientConnection[slot], "HTTP/1.1 404 File Not Found\n", 28);
-
+                    write(globals.clientConnection[slot], "HTTP/1.1 404 File Not Found\n", 28);
                 else          /* File found at correct path */
                 {
                     /* Construct, send and free packet_header */
@@ -72,7 +72,7 @@ void *response_handler(void* ptr)
                     packet_header[2] = concat("\r\n Content-Length: ", packet_header[1]);
                     packet_header[3] = concat(get_file_ext(send_file_path), packet_header[2]);
                     packet_header[4] = concat("HTTP/1.1 200 Document Follows\r\n Content-Type: ", packet_header[3]);
-                    send(clientConnection[slot], packet_header[4], strlen(packet_header[4]), 0);
+                    send(globals.clientConnection[slot], packet_header[4], strlen(packet_header[4]), 0);
                     printf("Response packet header:\n%s\n\n", packet_header[4]);
                     for (int i = 0; i < 5; i++)
                         free(packet_header[i]);
@@ -81,7 +81,7 @@ void *response_handler(void* ptr)
                     int read_data = read(fd, buffer, BUFSIZE);
                     while (read_data > 0)
                     {
-                        write(clientConnection[slot], buffer, read_data);
+                        write(globals.clientConnection[slot], buffer, read_data);
                         read_data = read(fd, buffer, BUFSIZE);
                     }
                     close(fd);
@@ -90,8 +90,8 @@ void *response_handler(void* ptr)
         }
     }
     /* Shutdown, close socket and mark connection slot open */
-    shutdown(clientConnection[slot], SHUT_RDWR);
-    close(clientConnection[slot]);
-    clientConnection[slot]=-1;
+    shutdown(globals.clientConnection[slot], SHUT_RDWR);
+    close(globals.clientConnection[slot]);
+    globals.clientConnection[slot]=-1;
     pthread_exit(0);
 }

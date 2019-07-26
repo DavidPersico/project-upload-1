@@ -17,8 +17,9 @@
 #include<arpa/inet.h>
 #include<sys/socket.h>
 
-#include "concat.h"
 #include "error.h"
+#include "concat.h"
+#include "globals.h"
 #include "file_info.h"
 #include "response_handler.h"
 #include "interrupt_handler.h"
@@ -40,7 +41,7 @@ int main(int argc , char **argv)
 
     /* Mark each clientConnection spot as -1 for unused */
     for (int i=0; i<MAXCLIENTS; i++)
-        clientConnection[i] = -1;
+        globals.clientConnection[i] = -1;
 
     /* Allows broken pipe/connection without killing progam */
     signal(SIGPIPE, SIG_IGN);
@@ -60,7 +61,7 @@ int main(int argc , char **argv)
     /* Set listenfd to socket and bind */
     for (p = res; p != NULL; p = p -> ai_next)
     {
-        listenfd = socket(p->ai_family, p -> ai_socktype, 0);
+        listenfd = socket(p -> ai_family, p -> ai_socktype, 0);
         if (listenfd == -1)
             continue;
         if (bind(listenfd, p -> ai_addr, p -> ai_addrlen) == 0)
@@ -72,7 +73,7 @@ int main(int argc , char **argv)
     freeaddrinfo(res);
 
     /* Set directory of website we are hosting */
-    char *server_root = concat(getenv("PWD"),"/www");
+    globals.server_root = concat(getenv("PWD"),"/www");
 
     /* Begin listening for incoming connections */
     if (listen(listenfd, 999990) != 0)
@@ -81,8 +82,8 @@ int main(int argc , char **argv)
     /* Handler for accepting incoming connections */
     while (1)
     {
-        clientConnection[slot] = accept(listenfd, (struct sockaddr *) &clientaddr, &addrlen);
-        if (clientConnection[slot] < 0)
+        globals.clientConnection[slot] = accept(listenfd, (struct sockaddr *) &clientaddr, &addrlen);
+        if (globals.clientConnection[slot] < 0)
             error("accept() error");
         else
         {
@@ -92,7 +93,6 @@ int main(int argc , char **argv)
             if (args == NULL)
                 error("Main() client_args malloc()");
             args->client = slot;
-            args->root = server_root;
             err = pthread_create(&thread, NULL, response_handler, (void*)(args));
             if (err != 0)
             {
@@ -108,7 +108,7 @@ int main(int argc , char **argv)
                 continue;
             }
         }
-        while (clientConnection[slot] !=-1)
+        while (globals.clientConnection[slot] !=-1)
             slot = (slot + 1) % MAXCLIENTS;
     }
     return 0;
